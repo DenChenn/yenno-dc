@@ -2,7 +2,6 @@ package handler
 
 import (
 	"context"
-	"fmt"
 	"log"
 	"os"
 	"path/filepath"
@@ -37,15 +36,11 @@ func (h *handler) ReceiveCreateDeploymentConfig(s *discordgo.Session, i *discord
 		data.Components[1].(*discordgo.ActionsRow).Components[0].(*discordgo.TextInput).Value,
 		"|",
 	)
-	requestCPU, _ := strconv.Atoi(cpuMemorySlice[0])
-	limitCPU, _ := strconv.Atoi(cpuMemorySlice[1])
-	requestMemory, _ := strconv.Atoi(cpuMemorySlice[2])
-	limitMemory, _ := strconv.Atoi(cpuMemorySlice[3])
 
-	deploymentConfig.RequestCPU = int32(requestCPU)
-	deploymentConfig.LimitCPU = int32(limitCPU)
-	deploymentConfig.RequestMemory = int32(requestMemory)
-	deploymentConfig.LimitMemory = int32(limitMemory)
+	deploymentConfig.RequestCPU = cpuMemorySlice[0]
+	deploymentConfig.LimitCPU = cpuMemorySlice[1]
+	deploymentConfig.RequestMemory = cpuMemorySlice[2]
+	deploymentConfig.LimitMemory = cpuMemorySlice[3]
 
 	// process format of <node>|<container_port>
 	nodeContainerPortSlice := strings.Split(
@@ -101,19 +96,19 @@ func (h *handler) ReceiveCreateDeploymentConfig(s *discordgo.Session, i *discord
 	})
 	fd = append(fd, &discordgo.MessageEmbedField{
 		Name:  "RequestCPU",
-		Value: fmt.Sprintf("%d", deploymentConfig.RequestCPU),
+		Value: deploymentConfig.RequestCPU,
 	})
 	fd = append(fd, &discordgo.MessageEmbedField{
 		Name:  "LimitCPU",
-		Value: fmt.Sprintf("%d", deploymentConfig.LimitCPU),
+		Value: deploymentConfig.LimitCPU,
 	})
 	fd = append(fd, &discordgo.MessageEmbedField{
 		Name:  "RequestMemory",
-		Value: fmt.Sprintf("%d", deploymentConfig.RequestMemory),
+		Value: deploymentConfig.RequestMemory,
 	})
 	fd = append(fd, &discordgo.MessageEmbedField{
 		Name:  "LimitMemory",
-		Value: fmt.Sprintf("%d", deploymentConfig.LimitMemory),
+		Value: deploymentConfig.LimitMemory,
 	})
 	fd = append(fd, &discordgo.MessageEmbedField{
 		Name:  "Env",
