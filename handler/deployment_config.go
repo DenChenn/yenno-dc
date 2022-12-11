@@ -1,15 +1,18 @@
 package handler
 
 import (
-	"github.com/bwmarrin/discordgo"
+	"context"
 	"log"
+
+	"github.com/DenChenn/yenno-dc/config"
+	"github.com/bwmarrin/discordgo"
 )
 
 func (h *handler) CreateDeploymentConfig(s *discordgo.Session, i *discordgo.InteractionCreate) {
 	if err := s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 		Type: discordgo.InteractionResponseModal,
 		Data: &discordgo.InteractionResponseData{
-			CustomID: "create-deployment-config",
+			CustomID: config.CreateDeploymentConfigCommand,
 			Title:    "Enter deployment config",
 			Components: []discordgo.MessageComponent{
 				// max length of row is five
@@ -72,31 +75,103 @@ func (h *handler) CreateDeploymentConfig(s *discordgo.Session, i *discordgo.Inte
 		log.Println(err)
 	}
 }
-func (h *handler) ListAllDeploymentConfig(s *discordgo.Session, i *discordgo.InteractionCreate) {
+
+func (h *handler) GetDeploymentConfigYaml(s *discordgo.Session, i *discordgo.InteractionCreate) {
 	if err := s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
-		Type: discordgo.InteractionResponseChannelMessageWithSource,
+		Type: discordgo.InteractionResponseModal,
 		Data: &discordgo.InteractionResponseData{
-			Content: "Hey there! Congratulations, you just executed your first slash command",
+			CustomID: config.GetDeploymentConfigYamlCommand,
+			Title:    "Get deployment config yaml",
+			Components: []discordgo.MessageComponent{
+				discordgo.ActionsRow{
+					Components: []discordgo.MessageComponent{
+						discordgo.TextInput{
+							CustomID: "Enter deployment config id to get yaml",
+							Label:    "Enter deployment config id to get yaml",
+							Style:    discordgo.TextInputShort,
+							Required: true,
+						},
+					},
+				},
+			},
 		},
 	}); err != nil {
 		log.Println(err)
 	}
 }
+
+func (h *handler) ListAllDeploymentConfig(s *discordgo.Session, i *discordgo.InteractionCreate) {
+	deploymentConfigList, err := h.DAO.DeploymentConfig.GetAll(context.Background())
+	if err != nil {
+		log.Println(err)
+	}
+	var fd []*discordgo.MessageEmbedField
+	for _, deploymentConfig := range deploymentConfigList {
+		fd = append(fd, &discordgo.MessageEmbedField{
+			Name:   deploymentConfig.Name,
+			Value:  deploymentConfig.ID,
+			Inline: true,
+		})
+	}
+
+	if err := s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+		Type: discordgo.InteractionResponseChannelMessageWithSource,
+		Data: &discordgo.InteractionResponseData{
+			Embeds: []*discordgo.MessageEmbed{
+				{
+					Title:  "📜 All deployment config",
+					Color:  config.White,
+					Fields: fd,
+				},
+			},
+		},
+	}); err != nil {
+		log.Println(err)
+	}
+}
+
 func (h *handler) DeleteDeploymentConfig(s *discordgo.Session, i *discordgo.InteractionCreate) {
 	if err := s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
-		Type: discordgo.InteractionResponseChannelMessageWithSource,
+		Type: discordgo.InteractionResponseModal,
 		Data: &discordgo.InteractionResponseData{
-			Content: "Hey there! Congratulations, you just executed your first slash command",
+			CustomID: config.DeleteDeploymentConfigCommand,
+			Title:    "Delete deployment config",
+			Components: []discordgo.MessageComponent{
+				discordgo.ActionsRow{
+					Components: []discordgo.MessageComponent{
+						discordgo.TextInput{
+							CustomID: "Enter deployment config id to delete",
+							Label:    "Enter deployment config id to delete",
+							Style:    discordgo.TextInputShort,
+							Required: true,
+						},
+					},
+				},
+			},
 		},
 	}); err != nil {
 		log.Println(err)
 	}
 }
-func (h *handler) DeployWithConfig(s *discordgo.Session, i *discordgo.InteractionCreate) {
+
+func (h *handler) DeployWithDeploymentConfig(s *discordgo.Session, i *discordgo.InteractionCreate) {
 	if err := s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
-		Type: discordgo.InteractionResponseChannelMessageWithSource,
+		Type: discordgo.InteractionResponseModal,
 		Data: &discordgo.InteractionResponseData{
-			Content: "Hey there! Congratulations, you just executed your first slash command",
+			CustomID: config.DeployWithDeploymentConfigCommand,
+			Title:    "Deploy with deployment config",
+			Components: []discordgo.MessageComponent{
+				discordgo.ActionsRow{
+					Components: []discordgo.MessageComponent{
+						discordgo.TextInput{
+							CustomID: "Enter deployment config id to deploy with",
+							Label:    "Enter deployment config id to deploy with",
+							Style:    discordgo.TextInputShort,
+							Required: true,
+						},
+					},
+				},
+			},
 		},
 	}); err != nil {
 		log.Println(err)

@@ -3,19 +3,20 @@ package handler
 import (
 	"context"
 	"fmt"
-	"github.com/DenChenn/yenno-dc/config"
-	"github.com/DenChenn/yenno-dc/model"
-	"github.com/DenChenn/yenno-dc/template"
-	"github.com/bwmarrin/discordgo"
 	"log"
 	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/DenChenn/yenno-dc/config"
+	"github.com/DenChenn/yenno-dc/model"
+	"github.com/DenChenn/yenno-dc/template"
+	"github.com/bwmarrin/discordgo"
 )
 
-func (h *handler) ReceiveCreateConfig(s *discordgo.Session, i *discordgo.InteractionCreate) {
+func (h *handler) ReceiveCreateDeploymentConfig(s *discordgo.Session, i *discordgo.InteractionCreate) {
 	data := i.ModalSubmitData()
 
 	uuid, err := h.IDGenerator.Generate()
@@ -120,29 +121,29 @@ func (h *handler) ReceiveCreateConfig(s *discordgo.Session, i *discordgo.Interac
 	})
 
 	_, err = s.ChannelMessageSendEmbed(config.Env.ChannelId, &discordgo.MessageEmbed{
-		Title:  "Create Deployment Config Success ✅",
-		Color:  16775936,
+		Title:  "✅ Create Deployment Config Success",
+		Color:  config.White,
 		Fields: fd,
 	})
 	if err != nil {
 		log.Println(err)
 	}
 
-	// generate k8s manifest
-	if err := template.GenerateManifest(deploymentConfig); err != nil {
+	// generate k8s yaml
+	if err := template.GenerateYaml(deploymentConfig); err != nil {
 		log.Println(err)
 	}
 
 	filename := deploymentConfig.Name + "_" + deploymentConfig.ID + ".yaml"
-	manifestFilePath := filepath.Join(config.RootPath, filename)
-	file, err := os.Open(manifestFilePath)
+	yamlFilePath := filepath.Join(config.RootPath, filename)
+	file, err := os.Open(yamlFilePath)
 	if err != nil {
 		log.Println(err)
 	}
 	if err := s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 		Type: discordgo.InteractionResponseChannelMessageWithSource,
 		Data: &discordgo.InteractionResponseData{
-			Content: "Here is your manifest file",
+			Content: "📄 Here is your yaml file",
 			Files: []*discordgo.File{
 				{
 					ContentType: "text/yaml",
@@ -154,5 +155,93 @@ func (h *handler) ReceiveCreateConfig(s *discordgo.Session, i *discordgo.Interac
 	}); err != nil {
 		log.Println(err)
 	}
-	template.RemoveManifest(manifestFilePath)
+	template.RemoveYaml(yamlFilePath)
+}
+
+func (h *handler) ReceiveDeleteDeploymentConfig(s *discordgo.Session, i *discordgo.InteractionCreate) {
+	// get deployment config id
+	data := i.ModalSubmitData()
+	deploymentConfigID := data.Components[0].(*discordgo.ActionsRow).Components[0].(*discordgo.TextInput).Value
+
+	// delete deployment config
+	if err := h.DAO.DeploymentConfig.Delete(context.Background(), deploymentConfigID); err != nil {
+		if err := s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+			Type: discordgo.InteractionResponseChannelMessageWithSource,
+			Data: &discordgo.InteractionResponseData{
+				Content: "❌ Delete Deployment Config Fail",
+			},
+		}); err != nil {
+			log.Println(err)
+		}
+		return
+	}
+
+	// return success status
+	if err := s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+		Type: discordgo.InteractionResponseChannelMessageWithSource,
+		Data: &discordgo.InteractionResponseData{
+			Content: "✅ Delete Deployment Config Success",
+		},
+	}); err != nil {
+		log.Println(err)
+	}
+}
+
+func (h *handler) ReceiveDeployWithDeploymentConfig(s *discordgo.Session, i *discordgo.InteractionCreate) {
+	if err := s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+		Type: discordgo.InteractionResponseChannelMessageWithSource,
+		Data: &discordgo.InteractionResponseData{
+			Content: "✅",
+		},
+	}); err != nil {
+		log.Println(err)
+	}
+}
+
+func (h *handler) ReceiveGetDeploymentConfigYaml(s *discordgo.Session, i *discordgo.InteractionCreate) {
+	// get deployment config id
+	data := i.ModalSubmitData()
+	deploymentConfigID := data.Components[0].(*discordgo.ActionsRow).Components[0].(*discordgo.TextInput).Value
+
+	// delete deployment config
+	deploymentConfig, err := h.DAO.DeploymentConfig.Get(context.Background(), deploymentConfigID)
+	if err != nil {
+		if err := s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+			Type: discordgo.InteractionResponseChannelMessageWithSource,
+			Data: &discordgo.InteractionResponseData{
+				Content: "❌ Get Deployment Config Yaml Fail",
+			},
+		}); err != nil {
+			log.Println(err)
+		}
+		return
+	}
+
+	// generate k8s yaml
+	if err := template.GenerateYaml(deploymentConfig); err != nil {
+		log.Println(err)
+	}
+
+	filename := deploymentConfig.Name + "_" + deploymentConfig.ID + ".yaml"
+	yamlFilePath := filepath.Join(config.RootPath, filename)
+	file, err := os.Open(yamlFilePath)
+	if err != nil {
+		log.Println(err)
+	}
+	if err := s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+		Type: discordgo.InteractionResponseChannelMessageWithSource,
+		Data: &discordgo.InteractionResponseData{
+			Content: "📄 Here is your yaml file",
+			Files: []*discordgo.File{
+				{
+					ContentType: "text/yaml",
+					Name:        deploymentConfig.Name + "_" + deploymentConfig.ID + ".yaml",
+					Reader:      file,
+				},
+			},
+		},
+	}); err != nil {
+		log.Println(err)
+	}
+	template.RemoveYaml(yamlFilePath)
 }

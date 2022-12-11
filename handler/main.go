@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"github.com/DenChenn/yenno-dc/config"
 	"github.com/DenChenn/yenno-dc/dao"
 	"github.com/bwmarrin/discordgo"
 	"github.com/teris-io/shortid"
@@ -21,19 +22,27 @@ func NewHandler(dao *dao.DAO, generator *shortid.Shortid) *handler {
 func (h *handler) Select(ic *discordgo.InteractionCreate) func(s *discordgo.Session, i *discordgo.InteractionCreate) {
 	if ic.Type == discordgo.InteractionApplicationCommand {
 		switch ic.ApplicationCommandData().Name {
-		case "create-deployment-config":
+		case config.CreateDeploymentConfigCommand:
 			return h.CreateDeploymentConfig
-		case "list-all-deployment-config":
+		case config.ListAllDeploymentConfigCommand:
 			return h.ListAllDeploymentConfig
-		case "delete-deployment-config":
+		case config.DeleteDeploymentConfigCommand:
 			return h.DeleteDeploymentConfig
-		case "deploy-with-config":
-			return h.DeployWithConfig
+		case config.DeployWithDeploymentConfigCommand:
+			return h.DeployWithDeploymentConfig
+		case config.GetDeploymentConfigYamlCommand:
+			return h.GetDeploymentConfigYaml
 		}
 	} else if ic.Type == discordgo.InteractionModalSubmit {
 		switch ic.ModalSubmitData().CustomID {
-		case "create-deployment-config":
-			return h.ReceiveCreateConfig
+		case config.CreateDeploymentConfigCommand:
+			return h.ReceiveCreateDeploymentConfig
+		case config.DeleteDeploymentConfigCommand:
+			return h.ReceiveDeleteDeploymentConfig
+		case config.DeployWithDeploymentConfigCommand:
+			return h.ReceiveDeployWithDeploymentConfig
+		case config.GetDeploymentConfigYamlCommand:
+			return h.ReceiveGetDeploymentConfigYaml
 		}
 	}
 	return nil

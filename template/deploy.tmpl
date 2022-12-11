@@ -39,6 +39,13 @@ spec:
       containers:
       - name: {{ .Name }}
         image: {{ .ImageURL }}
+        resources:
+          requests:
+            memory: {{ .RequestMemory }}
+            cpu: {{ .RequestCPU }}
+          limits:
+            memory: {{ .LimitMemory }}
+            cpu: {{ .LimitCPU }}
         env:
           {{- range $key, $value := .Env}}
           - name: {{ $key }}
