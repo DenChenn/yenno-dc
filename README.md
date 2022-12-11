@@ -8,8 +8,8 @@
 ![License: Apache 2.0](https://img.shields.io/badge/Lisence-Apache%202.0-blue.svg)
 
 ## What is it?
-🤖 Yenno is a Discord Bot built with discordgo & aims for easily configuring deployment on local cross-region Kubernetes 
-clusters.
+🤖 Yenno is a Discord Bot built with discordgo, aiming for easily configuring cross-region 
+k8s clusters.
 
 ## How to use it?
 | Slash Command                    | Description                              |
