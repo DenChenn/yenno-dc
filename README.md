@@ -5,7 +5,7 @@
 # Yenno
 
 ### Instant, easy, and secure cross-region cluster operator
-![License: Apache 2.0](https://img.shields.io/github/license/jetpack-io/devbox)
+![License: Apache 2.0](https://img.shields.io/badge/Lisence-Apache%202.0-blue.svg)
 
 ## What is it?
 🤖 Yenno is a Discord Bot built with discordgo & aims for easily configuring deployment on local cross-region Kubernetes 
