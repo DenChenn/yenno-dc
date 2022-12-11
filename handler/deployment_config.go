@@ -108,9 +108,8 @@ func (h *handler) ListAllDeploymentConfig(s *discordgo.Session, i *discordgo.Int
 	var fd []*discordgo.MessageEmbedField
 	for _, deploymentConfig := range deploymentConfigList {
 		fd = append(fd, &discordgo.MessageEmbedField{
-			Name:   deploymentConfig.Name,
-			Value:  deploymentConfig.ID,
-			Inline: true,
+			Name:  deploymentConfig.Name,
+			Value: deploymentConfig.ID,
 		})
 	}
 
