@@ -28,7 +28,7 @@ func ApplyTemplate(tmplPath string, config map[string]interface{}, outputPath st
 	return nil
 }
 
-func GenerateYaml(deploymentConfig *model.DeploymentConfig) error {
+func GenerateYaml(deploymentConfig *model.DeploymentConfig) (string, error) {
 	// create config map according to module detail
 	var envMap = map[string]string{}
 	for _, env := range deploymentConfig.Env {
@@ -51,7 +51,7 @@ func GenerateYaml(deploymentConfig *model.DeploymentConfig) error {
 	filename := deploymentConfig.Name + "_" + deploymentConfig.ID + ".yaml"
 	outputPath := filepath.Join(config.RootPath, filename)
 
-	return ApplyTemplate(templatePath, c, outputPath)
+	return outputPath, ApplyTemplate(templatePath, c, outputPath)
 }
 
 func RemoveYaml(path string) {
