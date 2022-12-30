@@ -4,7 +4,6 @@ import (
 	"context"
 	"log"
 	"os"
-	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -125,12 +124,11 @@ func (h *handler) ReceiveCreateDeploymentConfig(s *discordgo.Session, i *discord
 	}
 
 	// generate k8s yaml
-	if err := template.GenerateYaml(deploymentConfig); err != nil {
+	yamlFilePath, err := template.GenerateYaml(deploymentConfig)
+	if err != nil {
 		log.Println(err)
 	}
 
-	filename := deploymentConfig.Name + "_" + deploymentConfig.ID + ".yaml"
-	yamlFilePath := filepath.Join(config.RootPath, filename)
 	file, err := os.Open(yamlFilePath)
 	if err != nil {
 		log.Println(err)
@@ -213,12 +211,11 @@ func (h *handler) ReceiveGetDeploymentConfigYaml(s *discordgo.Session, i *discor
 	}
 
 	// generate k8s yaml
-	if err := template.GenerateYaml(deploymentConfig); err != nil {
+	yamlFilePath, err := template.GenerateYaml(deploymentConfig)
+	if err != nil {
 		log.Println(err)
 	}
 
-	filename := deploymentConfig.Name + "_" + deploymentConfig.ID + ".yaml"
-	yamlFilePath := filepath.Join(config.RootPath, filename)
 	file, err := os.Open(yamlFilePath)
 	if err != nil {
 		log.Println(err)
