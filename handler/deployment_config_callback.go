@@ -2,11 +2,16 @@ package handler
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
+
+	scp "github.com/bramvdbogaerde/go-scp"
+	"golang.org/x/crypto/ssh"
 
 	"github.com/DenChenn/yenno-dc/config"
 	"github.com/DenChenn/yenno-dc/model"
@@ -181,14 +186,175 @@ func (h *handler) ReceiveDeleteDeploymentConfig(s *discordgo.Session, i *discord
 }
 
 func (h *handler) ReceiveDeployWithDeploymentConfig(s *discordgo.Session, i *discordgo.InteractionCreate) {
+	// TODO: replace hardcoded variables
+	host := "140.113.207.18:22"
+	user := "aisforchestrator"
+	pKey := []byte(config.Env.AisfMasterPrivateKey)
+	serverDeploymentFileRoot := "/home/aisforchestrator"
+
+	// get deployment config id
+	data := i.ModalSubmitData()
+	deploymentConfigID := data.Components[0].(*discordgo.ActionsRow).Components[0].(*discordgo.TextInput).Value
+
+	// get deployment config
+	deploymentConfig, err := h.DAO.DeploymentConfig.Get(context.Background(), deploymentConfigID)
+	if err != nil {
+		log.Println(err)
+		if err := s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+			Type: discordgo.InteractionResponseChannelMessageWithSource,
+			Data: &discordgo.InteractionResponseData{
+				Content: "❌ Failed to get deployment config from database",
+			},
+		}); err != nil {
+			log.Println(err)
+		}
+		return
+	}
+
+	// Create the Signer for this private key.
+	signer, err := ssh.ParsePrivateKey(pKey)
+	if err != nil {
+		fmt.Println(err.Error())
+	}
+
+	// SSH client config
+	clientConfig := &ssh.ClientConfig{
+		User:            user,
+		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
+		Auth: []ssh.AuthMethod{
+			ssh.PublicKeys(signer),
+		},
+	}
+
+	sshClient, err := ssh.Dial("tcp", host, clientConfig)
+	if err != nil {
+		log.Println(err)
+		if err := s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+			Type: discordgo.InteractionResponseChannelMessageWithSource,
+			Data: &discordgo.InteractionResponseData{
+				Content: "❌ Failed to connect to server over ssh",
+			},
+		}); err != nil {
+			log.Println(err)
+		}
+		return
+	}
+	defer sshClient.Close()
+
+	// Create a new SCP client
+	scpClient, err := scp.NewClientBySSH(sshClient)
+	if err != nil {
+		log.Println(err)
+		if err := s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+			Type: discordgo.InteractionResponseChannelMessageWithSource,
+			Data: &discordgo.InteractionResponseData{
+				Content: "❌ Failed to connect to server over ssh",
+			},
+		}); err != nil {
+			log.Println(err)
+		}
+		return
+	}
+
+	// Connect to the remote server
+	err = scpClient.Connect()
+	if err != nil {
+		log.Println(err)
+		if err := s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+			Type: discordgo.InteractionResponseChannelMessageWithSource,
+			Data: &discordgo.InteractionResponseData{
+				Content: "❌ Failed to connect to server over ssh",
+			},
+		}); err != nil {
+			log.Println(err)
+		}
+		return
+	}
+	// Close client connection after the file has been copied
+	defer scpClient.Close()
+
+	// Upload yaml file
+	yamlFilePath, err := template.GenerateYaml(deploymentConfig)
+	if err != nil {
+		log.Println(err)
+	}
+	file, err := os.Open(yamlFilePath)
+	if err != nil {
+		log.Println(err)
+	}
+	filename := deploymentConfig.Name + "_" + deploymentConfig.ID + ".yaml"
+	remoteFilePath := filepath.Join(serverDeploymentFileRoot, filename)
+	permission := "0655"
+	err = scpClient.CopyFromFile(context.Background(), *file, remoteFilePath, permission)
+	if err != nil {
+		log.Println(err)
+		if err := s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+			Type: discordgo.InteractionResponseChannelMessageWithSource,
+			Data: &discordgo.InteractionResponseData{
+				Content: "❌ Failed to copy file to server",
+			},
+		}); err != nil {
+			log.Println(err)
+		}
+		template.RemoveYaml(yamlFilePath)
+		return
+	}
+
+	// create ssh session
+	session, err := sshClient.NewSession()
+	defer session.Close()
+	if err != nil {
+		log.Println(err)
+		if err := s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+			Type: discordgo.InteractionResponseChannelMessageWithSource,
+			Data: &discordgo.InteractionResponseData{
+				Content: "❌ Failed to connect to server over ssh",
+			},
+		}); err != nil {
+			log.Println(err)
+		}
+		return
+	}
+
+	// kubectl apply file
+	cmd := "kubectl apply " + serverDeploymentFileRoot
+	result, err := session.Output(cmd)
+	if err != nil {
+		log.Println(err)
+		if err := s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+			Type: discordgo.InteractionResponseChannelMessageWithSource,
+			Data: &discordgo.InteractionResponseData{
+				Content: "❌ Failed to apply deployment config",
+			},
+		}); err != nil {
+			log.Println(err)
+		}
+		template.RemoveYaml(yamlFilePath)
+		return
+	}
+	// TODO: retrieve and send kubectl log to client
+	log.Println("[Kubectl Log]:\n", string(result))
+	// resultFilePath := deploymentConfigID + "_result.txt"
+	// resultFile, err := os.Create(resultFilePath)
+	// if err != nil {
+	// 	log.Println(err)
+	// }
+	// defer resultFile.Close()
+	// _, err = resultFile.Write(result)
+	// if err != nil {
+	// 	log.Println(err)
+	// }
+
 	if err := s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 		Type: discordgo.InteractionResponseChannelMessageWithSource,
 		Data: &discordgo.InteractionResponseData{
-			Content: "✅",
+			Content: "✅ Successfully deployed config ID: " + deploymentConfigID,
 		},
 	}); err != nil {
 		log.Println(err)
 	}
+	// os.Remove(resultFilePath)
+	template.RemoveYaml(yamlFilePath)
 }
 
 func (h *handler) ReceiveGetDeploymentConfigYaml(s *discordgo.Session, i *discordgo.InteractionCreate) {
