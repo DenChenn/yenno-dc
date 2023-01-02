@@ -215,6 +215,7 @@ func (h *handler) ReceiveDeployWithDeploymentConfig(s *discordgo.Session, i *dis
 	signer, err := ssh.ParsePrivateKey(pKey)
 	if err != nil {
 		fmt.Println(err.Error())
+		return
 	}
 
 	// SSH client config
@@ -257,8 +258,7 @@ func (h *handler) ReceiveDeployWithDeploymentConfig(s *discordgo.Session, i *dis
 	}
 
 	// Connect to the remote server
-	err = scpClient.Connect()
-	if err != nil {
+	if err := scpClient.Connect(); err != nil {
 		log.Println(err)
 		if err := s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 			Type: discordgo.InteractionResponseChannelMessageWithSource,
@@ -270,7 +270,6 @@ func (h *handler) ReceiveDeployWithDeploymentConfig(s *discordgo.Session, i *dis
 		}
 		return
 	}
-	// Close client connection after the file has been copied
 	defer scpClient.Close()
 
 	// Upload yaml file
@@ -285,8 +284,7 @@ func (h *handler) ReceiveDeployWithDeploymentConfig(s *discordgo.Session, i *dis
 	filename := deploymentConfig.Name + "_" + deploymentConfig.ID + ".yaml"
 	remoteFilePath := filepath.Join(serverDeploymentFileRoot, filename)
 	permission := "0655"
-	err = scpClient.CopyFromFile(context.Background(), *file, remoteFilePath, permission)
-	if err != nil {
+	if err := scpClient.CopyFromFile(context.Background(), *file, remoteFilePath, permission); err != nil {
 		log.Println(err)
 		if err := s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 			Type: discordgo.InteractionResponseChannelMessageWithSource,
@@ -296,9 +294,9 @@ func (h *handler) ReceiveDeployWithDeploymentConfig(s *discordgo.Session, i *dis
 		}); err != nil {
 			log.Println(err)
 		}
-		template.RemoveYaml(yamlFilePath)
 		return
 	}
+	template.RemoveYaml(yamlFilePath)
 
 	// create ssh session
 	session, err := sshClient.NewSession()
@@ -354,7 +352,6 @@ func (h *handler) ReceiveDeployWithDeploymentConfig(s *discordgo.Session, i *dis
 		log.Println(err)
 	}
 	// os.Remove(resultFilePath)
-	template.RemoveYaml(yamlFilePath)
 }
 
 func (h *handler) ReceiveGetDeploymentConfigYaml(s *discordgo.Session, i *discordgo.InteractionCreate) {
