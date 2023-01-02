@@ -315,8 +315,8 @@ func (h *handler) ReceiveDeployWithDeploymentConfig(s *discordgo.Session, i *dis
 	}
 
 	// kubectl apply file
-	cmd := "kubectl apply " + serverDeploymentFileRoot
-	result, err := session.Output(cmd)
+	cmd := "kubectl apply -f " + serverDeploymentFileRoot
+	_, err = session.Output(cmd)
 	if err != nil {
 		log.Println(err)
 		if err := s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
@@ -331,7 +331,7 @@ func (h *handler) ReceiveDeployWithDeploymentConfig(s *discordgo.Session, i *dis
 		return
 	}
 	// TODO: retrieve and send kubectl log to client
-	log.Println("[Kubectl Log]:\n", string(result))
+	// log.Println("[Kubectl Log]:\n", string(result))
 	// resultFilePath := deploymentConfigID + "_result.txt"
 	// resultFile, err := os.Create(resultFilePath)
 	// if err != nil {
