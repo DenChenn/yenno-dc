@@ -2,19 +2,21 @@ package config
 
 import (
 	"fmt"
-	"github.com/joho/godotenv"
 	"log"
 	"os"
+
+	"github.com/joho/godotenv"
 )
 
 var Env *env
 
 type env struct {
-	BotToken        string
-	RedisUrl        string
-	RedisPassword   string
-	RedisDomainName string
-	ChannelId       string
+	BotToken             string
+	RedisUrl             string
+	RedisPassword        string
+	RedisDomainName      string
+	ChannelId            string
+	AisfMasterPrivateKey string
 }
 
 func Load() *env {
@@ -25,10 +27,11 @@ func Load() *env {
 	}
 
 	return &env{
-		BotToken:        os.Getenv("BOT_TOKEN"),
-		RedisUrl:        os.Getenv("REDIS_URL"),
-		ChannelId:       os.Getenv("CHANNEL_ID"),
-		RedisPassword:   os.Getenv("REDIS_PASSWORD"),
-		RedisDomainName: os.Getenv("REDIS_DOMAIN_NAME"),
+		BotToken:             os.Getenv("BOT_TOKEN"),
+		RedisUrl:             os.Getenv("REDIS_URL"),
+		ChannelId:            os.Getenv("CHANNEL_ID"),
+		RedisPassword:        os.Getenv("REDIS_PASSWORD"),
+		RedisDomainName:      os.Getenv("REDIS_DOMAIN_NAME"),
+		AisfMasterPrivateKey: os.Getenv("AISF_MASTER_PRIVATE_KEY"),
 	}
 }
