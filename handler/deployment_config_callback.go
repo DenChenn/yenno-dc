@@ -300,7 +300,6 @@ func (h *handler) ReceiveDeployWithDeploymentConfig(s *discordgo.Session, i *dis
 
 	// create ssh session
 	session, err := sshClient.NewSession()
-	defer session.Close()
 	if err != nil {
 		log.Println(err)
 		if err := s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
@@ -313,11 +312,11 @@ func (h *handler) ReceiveDeployWithDeploymentConfig(s *discordgo.Session, i *dis
 		}
 		return
 	}
+	defer session.Close()
 
 	// kubectl apply file
-	cmd := "kubectl apply -f " + serverDeploymentFileRoot
-	_, err = session.Output(cmd)
-	if err != nil {
+	cmd := "kubectl apply -f " + remoteFilePath
+	if _, err := session.Output(cmd); err != nil {
 		log.Println(err)
 		if err := s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 			Type: discordgo.InteractionResponseChannelMessageWithSource,
@@ -327,21 +326,11 @@ func (h *handler) ReceiveDeployWithDeploymentConfig(s *discordgo.Session, i *dis
 		}); err != nil {
 			log.Println(err)
 		}
-		template.RemoveYaml(yamlFilePath)
 		return
 	}
-	// TODO: retrieve and send kubectl log to client
-	// log.Println("[Kubectl Log]:\n", string(result))
-	// resultFilePath := deploymentConfigID + "_result.txt"
-	// resultFile, err := os.Create(resultFilePath)
-	// if err != nil {
-	// 	log.Println(err)
-	// }
-	// defer resultFile.Close()
-	// _, err = resultFile.Write(result)
-	// if err != nil {
-	// 	log.Println(err)
-	// }
+	if err := session.Run("rm " + remoteFilePath); err != nil {
+		log.Println(err)
+	}
 
 	if err := s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 		Type: discordgo.InteractionResponseChannelMessageWithSource,
