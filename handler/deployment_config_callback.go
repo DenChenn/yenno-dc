@@ -187,10 +187,10 @@ func (h *handler) ReceiveDeleteDeploymentConfig(s *discordgo.Session, i *discord
 
 func (h *handler) ReceiveDeployWithDeploymentConfig(s *discordgo.Session, i *discordgo.InteractionCreate) {
 	// TODO: replace hardcoded variables
-	host := "140.113.207.18:22"
-	user := "aisforchestrator"
+	host := "140.113.179.35:2030"
+	user := "master"
 	pKey := []byte(config.Env.AisfMasterPrivateKey)
-	serverDeploymentFileRoot := "/home/aisforchestrator"
+	serverDeploymentFileRoot := "/home/master"
 
 	// get deployment config id
 	data := i.ModalSubmitData()
@@ -315,8 +315,9 @@ func (h *handler) ReceiveDeployWithDeploymentConfig(s *discordgo.Session, i *dis
 	defer session.Close()
 
 	// kubectl apply file
-	cmd := "kubectl apply -f " + remoteFilePath
-	if _, err := session.Output(cmd); err != nil {
+	deployCmd := "kubectl apply -f " + remoteFilePath
+	removeDeploymentFileCmd := "rm " + remoteFilePath
+	if _, err := session.CombinedOutput(deployCmd + " && " + removeDeploymentFileCmd); err != nil {
 		log.Println(err)
 		if err := s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 			Type: discordgo.InteractionResponseChannelMessageWithSource,
@@ -327,9 +328,6 @@ func (h *handler) ReceiveDeployWithDeploymentConfig(s *discordgo.Session, i *dis
 			log.Println(err)
 		}
 		return
-	}
-	if err := session.Run("rm " + remoteFilePath); err != nil {
-		log.Println(err)
 	}
 
 	if err := s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
